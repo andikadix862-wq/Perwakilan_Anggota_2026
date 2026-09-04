@@ -1,5 +1,61 @@
 import fs from 'fs';
 import path from 'path';
+import pg from 'pg';
+const { Pool } = pg;
+
+let pgPool: pg.Pool | null = null;
+let pgInitialized = false;
+
+function getPgPool() {
+  if (!pgPool && process.env.DATABASE_URL) {
+    try {
+      pgPool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+        connectionTimeoutMillis: 5000
+      });
+    } catch (e) {
+      console.error('Failed to create PostgreSQL pool:', e);
+    }
+  }
+  return pgPool;
+}
+
+export async function initPostgresDb(): Promise<void> {
+  const pool = getPgPool();
+  if (!pool || pgInitialized) return;
+
+  try {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS election_store (
+          id INT PRIMARY KEY,
+          data JSONB NOT NULL,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      const res = await client.query('SELECT data FROM election_store WHERE id = 1');
+      if (res.rows.length > 0 && res.rows[0].data) {
+        dbState = res.rows[0].data;
+        console.log('Successfully loaded database state from PostgreSQL (Supabase)!');
+      } else if (dbState) {
+        await client.query(
+          `INSERT INTO election_store (id, data, updated_at) VALUES (1, $1, NOW())
+           ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+          [JSON.stringify(dbState)]
+        );
+        console.log('Successfully initialized database state in PostgreSQL (Supabase)!');
+      }
+      pgInitialized = true;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    console.error('Error connecting/initializing PostgreSQL database:', err);
+  }
+}
 import {
   Member,
   Division,
@@ -554,6 +610,18 @@ export function saveDatabaseToFile(): void {
     fs.writeFileSync(DB_FILE, JSON.stringify(dbState, null, 2), 'utf-8');
   } catch (err) {
     console.error('Error saving database to file:', err);
+  }
+
+  // Also sync asynchronously to PostgreSQL if DATABASE_URL is set
+  const pool = getPgPool();
+  if (pool) {
+    pool.query(
+      `INSERT INTO election_store (id, data, updated_at) VALUES (1, $1, NOW())
+       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+      [JSON.stringify(dbState)]
+    ).catch(err => {
+      console.error('Error syncing database state to PostgreSQL:', err);
+    });
   }
 }
 

@@ -27,6 +27,7 @@ import {
 import { api, VoterDashboardResponse, SubmitVoteResponse } from '../services/api';
 import { Candidate, Member } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
+import { getHanyaPemilihReasonLabel } from '../utils/pension';
 
 interface VotingPageProps {
   member: Member;
@@ -673,6 +674,7 @@ export const VotingPage: React.FC<VotingPageProps> = ({
         >
           {processedCandidates.map(cand => {
             const isEligible = isCandidateEligibleToVote(cand);
+            const reason = getHanyaPemilihReasonLabel(cand);
             const isSelected = selectedCandidateId === cand.kandidat_id;
             const candVotes = cand.total_suara || 0;
             const isTopCandidate = maxVotesInDiv > 0 && candVotes === maxVotesInDiv;
@@ -755,9 +757,12 @@ export const VotingPage: React.FC<VotingPageProps> = ({
                           </div>
                         </>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100/90 border border-amber-300 text-amber-900 text-[10px] font-bold uppercase tracking-wider shadow-2xs">
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100/90 border border-amber-300 text-amber-900 text-[10px] font-bold uppercase tracking-wider shadow-2xs"
+                          title={reason.detailTitle}
+                        >
                           <Lock className="w-3 h-3 text-amber-700" />
-                          <span>Hanya Pemilih</span>
+                          <span>{reason.badge}</span>
                         </span>
                       )}
                     </div>
@@ -852,20 +857,16 @@ export const VotingPage: React.FC<VotingPageProps> = ({
                     </div>
                   </div>
 
-                  {/* Warning Badge for Ineligible (Pengurus/BPK or < 4 Years Pension) */}
+                  {/* Warning Badge for Ineligible (Pengurus/BPK/Pegawai or < 4 Years Pension) */}
                   {!isEligible && (
                     <div className="mt-3.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
                       <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <div className="space-y-0.5 min-w-0">
                         <p className="font-bold text-amber-900">
-                          {cand.is_pengurus_bpk
-                            ? `Tidak dapat dipilih (${cand.tipe_pengurus_bpk || 'Pengurus/BPK'} - Hanya Pemilih)`
-                            : 'Tidak dapat dipilih (Sisa Masa Pensiun < 4 tahun)'}
+                          {reason.detailTitle}
                         </p>
                         <p className="text-[11px] text-amber-800/95 leading-relaxed">
-                          {cand.is_pengurus_bpk
-                            ? 'Menjabat sebagai Pengurus atau BPK koperasi, sesuai AD/ART hanya memiliki Hak Memilih dan tidak dapat dicalonkan sebagai perwakilan.'
-                            : 'Anggota hanya status Pemilih, sesuai dengan ketentuan AD/ART sisa masa dinas minimal 4 tahun.'}
+                          {reason.detailDesc}
                         </p>
                       </div>
                     </div>
@@ -913,11 +914,7 @@ export const VotingPage: React.FC<VotingPageProps> = ({
                       className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed flex items-center justify-center gap-2 select-none shadow-none"
                     >
                       <Lock className="w-3.5 h-3.5 text-gray-400" />
-                      <span>
-                        {cand.is_pengurus_bpk
-                          ? 'TIDAK DAPAT DIPILIH (PENGURUS / BPK)'
-                          : 'TIDAK DAPAT DIPILIH (PENSIUN < 4 THN)'}
-                      </span>
+                      <span>{reason.buttonText}</span>
                     </button>
                   )}
                 </div>

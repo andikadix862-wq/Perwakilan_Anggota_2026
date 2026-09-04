@@ -58,6 +58,74 @@ export function checkPengurusOrBPK(jabatan?: string | null): PengurusBPKCheckRes
   return { isPengurusBPK: false, roleType: null, label: '' };
 }
 
+export interface HanyaPemilihReason {
+  factor: 'PEGAWAI' | 'PENGURUS' | 'BPK' | 'PENSIUN' | 'LAINNYA';
+  badge: string;
+  badgeShort: string;
+  buttonText: string;
+  detailTitle: string;
+  detailDesc: string;
+}
+
+export function getHanyaPemilihReasonLabel(item: {
+  jabatan?: string | null;
+  is_pengurus_bpk?: boolean;
+  tipe_pengurus_bpk?: string | null;
+  is_pegawai?: boolean;
+  sisa_pensiun_tahun?: number | null;
+  sisa_pensiun_kurang_4thn?: boolean;
+  is_pensiun_warning?: boolean;
+  is_warning?: boolean;
+  alasan_syarat?: string | null;
+}): HanyaPemilihReason {
+  const jab = item.jabatan || '';
+  const pengurusCheck = checkPengurusOrBPK(jab);
+  const isPeg = item.is_pegawai ?? checkPegawai(jab);
+
+  if (isPeg) {
+    return {
+      factor: 'PEGAWAI',
+      badge: 'HANYA PEMILIH (PEGAWAI)',
+      badgeShort: 'PEGAWAI (HANYA PEMILIH)',
+      buttonText: 'TIDAK DAPAT DIPILIH (PEGAWAI)',
+      detailTitle: 'Tidak dapat dipilih (Pegawai Koperasi)',
+      detailDesc: 'Terdaftar sebagai Pegawai/Karyawan KOPSYAH YKK, sesuai ketentuan AD/ART hanya memiliki Hak Memilih dan tidak dapat dicalonkan sebagai perwakilan.'
+    };
+  }
+
+  if (item.is_pengurus_bpk || pengurusCheck.isPengurusBPK) {
+    const roleType = item.tipe_pengurus_bpk || pengurusCheck.roleType;
+    if (roleType === 'BPK' || jab.toUpperCase().includes('BPK') || jab.toUpperCase().includes('PENGAWAS')) {
+      return {
+        factor: 'BPK',
+        badge: 'HANYA PEMILIH (BPK)',
+        badgeShort: 'BPK (HANYA PEMILIH)',
+        buttonText: 'TIDAK DAPAT DIPILIH (BPK)',
+        detailTitle: 'Tidak dapat dipilih (Badan Pengawas Koperasi - BPK)',
+        detailDesc: 'Menjabat sebagai Badan Pengawas Koperasi (BPK), sesuai ketentuan AD/ART hanya memiliki Hak Memilih dan tidak dapat dicalonkan sebagai perwakilan.'
+      };
+    }
+    return {
+      factor: 'PENGURUS',
+      badge: 'HANYA PEMILIH (PENGURUS)',
+      badgeShort: 'PENGURUS (HANYA PEMILIH)',
+      buttonText: 'TIDAK DAPAT DIPILIH (PENGURUS)',
+      detailTitle: 'Tidak dapat dipilih (Pengurus Koperasi)',
+      detailDesc: 'Menjabat sebagai Pengurus Koperasi, sesuai ketentuan AD/ART hanya memiliki Hak Memilih dan tidak dapat dicalonkan sebagai perwakilan.'
+    };
+  }
+
+  // Default assumption for ineligible candidate is Pension < 4 Years
+  return {
+    factor: 'PENSIUN',
+    badge: 'HANYA PEMILIH (PENSIUN < 4 THN)',
+    badgeShort: 'PENSIUN < 4 THN (HANYA PEMILIH)',
+    buttonText: 'TIDAK DAPAT DIPILIH (PENSIUN < 4 THN)',
+    detailTitle: 'Tidak dapat dipilih (Sisa Masa Pensiun < 4 tahun)',
+    detailDesc: 'Anggota hanya status Pemilih, sesuai dengan ketentuan AD/ART sisa masa dinas minimal 4 tahun.'
+  };
+}
+
 export interface PensionCalculationResult {
   tanggal_lahir?: string | null;
   tanggal_pensiun?: string | null;

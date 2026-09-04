@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Candidate, Division, Member } from '../../types';
-import { checkPengurusOrBPK } from '../../utils/pension';
+import { checkPengurusOrBPK, checkPegawai, getHanyaPemilihReasonLabel } from '../../utils/pension';
 
 interface AdminCandidatesProps {
   adminEmail: string;
@@ -321,22 +321,17 @@ export const AdminCandidates: React.FC<AdminCandidatesProps> = ({ adminEmail }) 
                 {/* Qualification Badges */}
                 {(() => {
                   const pengurusCheck = checkPengurusOrBPK(cand.jabatan);
-                  if (cand.is_pengurus_bpk || pengurusCheck.isPengurusBPK) {
-                    return (
-                      <div className="mt-2.5">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-950 border border-purple-300 flex items-center gap-1">
-                          <ShieldAlert className="w-3 h-3 text-purple-700 shrink-0" />
-                          <span>{pengurusCheck.label || 'Pengurus / BPK'} (Hanya Pemilih)</span>
-                        </span>
-                      </div>
-                    );
-                  }
-                  if (cand.memenuhi_syarat === false || cand.is_pensiun_warning) {
+                  const isPeg = cand.is_pegawai ?? checkPegawai(cand.jabatan);
+                  const isPeng = cand.is_pengurus_bpk || pengurusCheck.isPengurusBPK;
+                  const isIneligible = isPeg || isPeng || cand.memenuhi_syarat === false || cand.is_pensiun_warning;
+
+                  if (isIneligible) {
+                    const reason = getHanyaPemilihReasonLabel(cand);
                     return (
                       <div className="mt-2.5">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
-                          <span>Sisa Pensiun &lt; 4 Thn ({cand.sisa_pensiun_text || `${cand.sisa_pensiun_tahun} thn`})</span>
+                          <ShieldAlert className="w-3 h-3 text-amber-700 shrink-0" />
+                          <span>{reason.badge}</span>
                         </span>
                       </div>
                     );
@@ -414,12 +409,22 @@ export const AdminCandidates: React.FC<AdminCandidatesProps> = ({ adminEmail }) 
                     {members
                       .filter(m => {
                         const isP = checkPengurusOrBPK(m.jabatan).isPengurusBPK;
+                        const isPeg = checkPegawai(m.jabatan);
                         const isW = m.is_pensiun_warning || (m.sisa_pensiun_tahun !== null && m.sisa_pensiun_tahun !== undefined && m.sisa_pensiun_tahun < 4);
-                        return !isP && !isW && m.status === 'AKTIF';
+                        return !isP && !isPeg && !isW && m.status === 'AKTIF';
                       })
                       .map(m => (
                         <option key={m.nomor_anggota || m.email} value={m.nomor_anggota || m.email}>
                           {m.nama} ({m.nomor_anggota} - {m.nama_bagian})
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="👔 Pegawai Koperasi (Hanya Pemilih - AD/ART)">
+                    {members
+                      .filter(m => checkPegawai(m.jabatan))
+                      .map(m => (
+                        <option key={m.nomor_anggota || m.email} value={m.nomor_anggota || m.email}>
+                          [PEGAWAI] {m.nama} ({m.nomor_anggota} - {m.jabatan || 'Pegawai'})
                         </option>
                       ))}
                   </optgroup>
@@ -428,7 +433,7 @@ export const AdminCandidates: React.FC<AdminCandidatesProps> = ({ adminEmail }) 
                       .filter(m => checkPengurusOrBPK(m.jabatan).isPengurusBPK)
                       .map(m => (
                         <option key={m.nomor_anggota || m.email} value={m.nomor_anggota || m.email}>
-                          [PENGURUS/BPK] {m.nama} ({m.nomor_anggota} - {m.jabatan || 'Pengurus'})
+                          [{checkPengurusOrBPK(m.jabatan).roleType === 'BPK' ? 'BPK' : 'PENGURUS'}] {m.nama} ({m.nomor_anggota} - {m.jabatan || 'Pengurus/BPK'})
                         </option>
                       ))}
                   </optgroup>
@@ -436,8 +441,9 @@ export const AdminCandidates: React.FC<AdminCandidatesProps> = ({ adminEmail }) 
                     {members
                       .filter(m => {
                         const isP = checkPengurusOrBPK(m.jabatan).isPengurusBPK;
+                        const isPeg = checkPegawai(m.jabatan);
                         const isW = m.is_pensiun_warning || (m.sisa_pensiun_tahun !== null && m.sisa_pensiun_tahun !== undefined && m.sisa_pensiun_tahun < 4);
-                        return !isP && isW;
+                        return !isP && !isPeg && isW;
                       })
                       .map(m => (
                         <option key={m.nomor_anggota || m.email} value={m.nomor_anggota || m.email}>

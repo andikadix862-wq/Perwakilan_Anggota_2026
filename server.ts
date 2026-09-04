@@ -8,6 +8,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import {
   getDatabase,
+  initPostgresDb,
   getMemberByEmail,
   getMembers,
   getDivisions,
@@ -50,6 +51,7 @@ async function startServer() {
 
   // Initialize DB
   getDatabase();
+  await initPostgresDb();
 
   // -------------------------------------------------------------
   // HEALTH & SYSTEM STATUS

@@ -508,7 +508,7 @@ export const AdminMembers: React.FC<AdminMembersProps> = ({ adminEmail, onNaviga
               }`}
             >
               <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-              <span>Pegawai - Tidak Punya Hak Memilih ({totalPegawai})</span>
+              <span>Pegawai - Hanya Pemilih ({totalPegawai})</span>
             </button>
             <button
               type="button"
@@ -731,7 +731,7 @@ export const AdminMembers: React.FC<AdminMembersProps> = ({ adminEmail, onNaviga
                               title="Terdaftar sebagai Pegawai/Karyawan. Sesuai ketentuan AD/ART, Pegawai/Karyawan HANYA memiliki Hak Memilih dan tidak memiliki Hak Dipilih (Hanya Pemilih)."
                             >
                               <ShieldAlert className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-                              <span>Pegawai - Hanya Pemilih</span>
+                              <span>HANYA PEMILIH (PEGAWAI)</span>
                             </span>
                           ) : m.hak_pilih ? (
                             isPengurusOrBpk.isPengurusBPK ? (
@@ -740,7 +740,7 @@ export const AdminMembers: React.FC<AdminMembersProps> = ({ adminEmail, onNaviga
                                 title={`Menjabat sebagai ${isPengurusOrBpk.label}. Sesuai ketentuan AD/ART, Pengurus dan BPK HANYA memiliki Hak Memilih dan tidak memiliki Hak Dipilih (Hanya Pemilih).`}
                               >
                                 <ShieldAlert className="w-3.5 h-3.5 text-purple-700 shrink-0" />
-                                <span>Pengurus / BPK - Hanya Pemilih</span>
+                                <span>HANYA PEMILIH ({isPengurusOrBpk.roleType === 'BPK' ? 'BPK' : 'PENGURUS'})</span>
                               </span>
                             ) : isWarning ? (
                               <span
@@ -748,7 +748,7 @@ export const AdminMembers: React.FC<AdminMembersProps> = ({ adminEmail, onNaviga
                                 title={pension.alasan_hak_dipilih || "Tidak berhak dicalonkan karena sisa masa pensiun < 4 tahun (usia 51+ thn). Berstatus Hanya Pemilih."}
                               >
                                 <AlertTriangle className="w-3 h-3 text-amber-700 shrink-0" />
-                                <span>HAK DIPILIH: NONAKTIF (Hanya Pemilih)</span>
+                                <span>HANYA PEMILIH (PENSIUN &lt; 4 THN)</span>
                               </span>
                             ) : (
                               <span
